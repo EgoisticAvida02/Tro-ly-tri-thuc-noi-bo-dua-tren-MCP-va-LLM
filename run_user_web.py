@@ -92,7 +92,8 @@ def index():
     
     # Check if user is admin - redirect admins to admin web
     if user_info['role'] == 'admin':
-        return redirect('http://localhost:7860/admin')
+        host = request.host.rsplit(':', 1)[0]
+        return redirect(f'http://{host}:7860/admin')
     
     # Send response with no-cache headers to prevent back button issues
     response = send_from_directory(UI_DIR, 'user_index.html')
@@ -112,11 +113,11 @@ def login_page():
         if is_valid:
             if user_info['role'] == 'admin':
                 # Admin should go to admin web
-                return redirect('http://localhost:7860/admin')
+                host = request.host.rsplit(':', 1)[0]
+                return redirect(f'http://{host}:7860/admin')
             else:
-                # User already logged in on user web, show user interface
-                # Use full redirect to avoid loop
-                return redirect('http://localhost:7861/')
+                # User already logged in, redirect to home page to avoid loop
+                return redirect('/')
     
     return send_from_directory(UI_DIR, 'login.html')
 

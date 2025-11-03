@@ -94,7 +94,9 @@ def index():
     
     # Check if user is admin
     if user_info['role'] != 'admin':
-        return redirect('http://localhost:7861')  # Redirect regular users to user interface
+        # Get the host from request to redirect to user web on same server
+        host = request.host.rsplit(':', 1)[0]  # Remove port if present
+        return redirect(f'http://{host}:7861')  # Redirect regular users to user interface
     
     # Send response with no-cache headers to prevent back button issues
     response = send_from_directory(UI_DIR, 'admin_index_new.html')
@@ -138,10 +140,11 @@ def login_page():
         if is_valid:
             if user_info['role'] == 'admin':
                 # Admin already logged in on admin web, show admin interface
-                return redirect('http://localhost:7860/admin')
+                return redirect('/admin')
             else:
                 # Regular user should go to user web
-                return redirect('http://localhost:7861/')
+                host = request.host.rsplit(':', 1)[0]
+                return redirect(f'http://{host}:7861/')
     
     return send_from_directory(UI_DIR, 'login.html')
 

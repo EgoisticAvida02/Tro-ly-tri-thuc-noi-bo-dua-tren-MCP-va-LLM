@@ -89,8 +89,17 @@ ollama pull llama3.2:3b
 # Khởi động Ollama server
 nohup ollama serve > ollama.log 2>&1 &
 
-# Cài dependencies Python
-pip3 install -r requirements.txt
+# Cài Poetry (Python package manager)
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Add Poetry to PATH
+export PATH="/home/ubuntu/.local/bin:$PATH"
+
+# Install dependencies với Poetry (skip installing the project itself)
+poetry install --no-root
+
+# Install Flask (for web interfaces)
+poetry run pip install flask flask-cors
 
 # Tạo thư mục data
 mkdir -p data/documents data/chat_history
@@ -101,11 +110,11 @@ mkdir -p data/documents data/chat_history
 ### Bước 5: Chạy services (3 phút)
 
 ```bash
-# Khởi động Admin Web
-nohup python3 run_admin_web.py > admin.log 2>&1 &
+# Khởi động Admin Web với Poetry
+nohup poetry run python run_admin_web.py > admin.log 2>&1 &
 
-# Khởi động User Web
-nohup python3 run_user_web.py > user.log 2>&1 &
+# Khởi động User Web với Poetry
+nohup poetry run python run_user_web.py > user.log 2>&1 &
 
 # Kiểm tra đã chạy chưa
 ps aux | grep python
@@ -166,8 +175,8 @@ tail -f ollama.log
 # Restart
 pkill -f run_admin_web
 pkill -f run_user_web
-nohup python3 run_admin_web.py > admin.log 2>&1 &
-nohup python3 run_user_web.py > user.log 2>&1 &
+nohup poetry run python run_admin_web.py > admin.log 2>&1 &
+nohup poetry run python run_user_web.py > user.log 2>&1 &
 ```
 
 ### Chậm hơn 10 giây:

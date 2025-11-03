@@ -797,11 +797,19 @@ cd knowledge-system
 ollama pull llama3.2:3b
 
 # Start Ollama server in background
-ollama serve &
+nohup ollama serve > ollama.log 2>&1 &
 
-# Install Python dependencies
-sudo apt install -y python3-pip
-pip3 install -r requirements.txt
+# Install Poetry (Python package manager)
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Add Poetry to PATH
+export PATH="/home/ubuntu/.local/bin:$PATH"
+
+# Install dependencies with Poetry (skip installing the project itself)
+poetry install --no-root
+
+# Install Flask (for web interfaces)
+poetry run pip install flask flask-cors
 
 # Create data directory
 mkdir -p data/documents data/chat_history
@@ -810,11 +818,11 @@ mkdir -p data/documents data/chat_history
 ### 5. Start Services (3 minutes)
 
 ```bash
-# Start admin web (terminal 1)
-python3 run_admin_web.py &
+# Start admin web with Poetry
+nohup poetry run python run_admin_web.py > admin.log 2>&1 &
 
-# Start user web (terminal 2)
-python3 run_user_web.py &
+# Start user web with Poetry
+nohup poetry run python run_user_web.py > user.log 2>&1 &
 
 # Check if running
 ps aux | grep python
