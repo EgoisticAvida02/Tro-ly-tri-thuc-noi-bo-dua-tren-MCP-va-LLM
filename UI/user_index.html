@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trợ lý Tri thức Nội bộ</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Trợ lý Tri thức Nội bộ - User</title>
+    <link rel="stylesheet" href="user_styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
@@ -13,32 +13,28 @@
         <header class="header">
             <div class="header-content">
                 <h1><i class="fas fa-brain"></i> Trợ lý Tri thức Nội bộ</h1>
-                <p>Hệ thống AI hỗ trợ quản lý thông tin từ tài liệu nội bộ</p>
+                <p>Hệ thống AI hỗ trợ tra cứu thông tin từ tài liệu nội bộ</p>
+            </div>
+            <div class="header-actions">
+                <div class="user-info" id="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="user-name">User</span>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="Đăng xuất">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
             </div>
         </header>
 
         <div class="main-content">
             <!-- Sidebar -->
             <aside class="sidebar">
-                <!-- Upload Section -->
-                <div class="upload-section">
-                    <h3><i class="fas fa-upload"></i> Tải lên tài liệu</h3>
-                    <div class="upload-area" id="uploadArea">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Kéo thả file hoặc click để chọn</p>
-                        <span class="file-types">PDF, DOCX, MD, TXT</span>
-                        <input type="file" id="fileInput" multiple accept=".pdf,.docx,.doc,.md,.txt">
-                    </div>
-                    <div class="upload-progress" id="uploadProgress">
-                        <div class="progress-bar" id="progressBar"></div>
-                        <span class="progress-text" id="progressText">0%</span>
-                    </div>
-                </div>
-
                 <!-- Document List -->
                 <div class="document-section">
                     <h3><i class="fas fa-folder-open"></i> Tài liệu trên hệ thống</h3>
-                    <div class="document-list" id="documentList"></div>
+                    <div class="document-list" id="documentList">
+                        <div class="loading">Đang tải...</div>
+                    </div>
                 </div>
 
                 <!-- System Stats -->
@@ -72,7 +68,7 @@
                             <i class="fas fa-robot"></i>
                         </div>
                         <div class="message-content">
-                            <p>Xin chào! Tôi là trợ lý AI của bạn. Hãy đặt câu hỏi, tôi sẽ giúp bạn tìm kiếm thông tin một cách chính xác.</p>
+                            <p>Xin chào! Tôi là trợ lý AI của bạn. Hãy đặt câu hỏi về tài liệu nội bộ, tôi sẽ giúp bạn tìm kiếm thông tin một cách chính xác.</p>
                         </div>
                     </div>
                 </div>
@@ -80,13 +76,13 @@
                 <div class="chat-input-container">
                     <div class="chat-input-wrapper">
                         <input type="text" id="chatInput" placeholder="Nhập câu hỏi của bạn..." maxlength="500">
-                        <button id="sendButton" disabled>
+                        <button id="sendButton">
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
                     <div class="input-footer">
                         <span class="character-count" id="charCount">0/500</span>
-                        <span class="typing-indicator" id="typingIndicator">
+                        <span class="typing-indicator" id="typingIndicator" style="display: none;">
                             <i class="fas fa-robot"></i> AI đang suy nghĩ...
                         </span>
                     </div>
@@ -95,17 +91,36 @@
         </div>
     </div>
 
-    <!-- Modal for document preview -->
-    <div class="modal" id="documentModal">
+    <!-- Modal for report -->
+    <div class="modal" id="reportModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modalTitle">Chi tiết tài liệu</h3>
-                <button class="modal-close" id="modalClose">
+                <h3>📝 Báo cáo vấn đề</h3>
+                <button class="modal-close" id="reportModalClose">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body" id="modalBody">
-                <!-- Document details will be shown here -->
+            <div class="modal-body">
+                <p>Hãy cho chúng tôi biết vấn đề bạn gặp phải:</p>
+                
+                <div class="form-group">
+                    <label>Loại vấn đề:</label>
+                    <select id="reportType">
+                        <option value="incorrect">Thông tin không chính xác</option>
+                        <option value="missing">Thiếu thông tin</option>
+                        <option value="unclear">Câu trả lời không rõ ràng</option>
+                        <option value="other">Khác</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Chi tiết:</label>
+                    <textarea id="reportDetails" rows="4" placeholder="Vui lòng mô tả chi tiết vấn đề..."></textarea>
+                </div>
+                
+                <button class="btn-primary" id="submitReport">
+                    <i class="fas fa-paper-plane"></i> Gửi báo cáo
+                </button>
             </div>
         </div>
     </div>
@@ -113,6 +128,6 @@
     <!-- Toast notifications -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="script.js"></script>
+    <script src="user_script.js?v=3.0"></script>
 </body>
 </html>
