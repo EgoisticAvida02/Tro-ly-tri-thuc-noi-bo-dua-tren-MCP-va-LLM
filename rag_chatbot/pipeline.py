@@ -5,27 +5,42 @@ from .core import (
     LocalEmbedding,
     LocalVectorStore,
     get_system_prompt,
+    GeminiLLM,
 )
 from llama_index.core import Settings
 from llama_index.core.chat_engine.types import StreamingAgentChatResponse
 from llama_index.core.prompts import ChatMessage, MessageRole
 from .setting import RAGSettings
+import os
 
 
 class LocalRAGPipeline:
-    def __init__(self, host: str = "localhost", auto_init_docs: bool = True) -> None:
+    def __init__(self, host: str = "localhost", auto_init_docs: bool = True, use_gemini: bool = False, gemini_api_key: str = None) -> None:
         # Load settings
         self._settings = RAGSettings()
         self._host = host
         self._language = "eng"
-        self._model_name = self._settings.ollama.llm  # Get from settings: llama3.2:3b
+        self._use_gemini = use_gemini
+        
+        # Set up LLM
+        if use_gemini:
+            # Try to get API key from parameter, environment variable, or settings (in that order)
+            api_key = gemini_api_key or os.environ.get('GEMINI_API_KEY') or self._settings.gemini.api_key
+            if not api_key:
+                raise ValueError("Gemini API key required. Set GEMINI_API_KEY environment variable, pass gemini_api_key parameter, or configure in settings.")
+            self._default_model = GeminiLLM(api_key=api_key, model=self._settings.gemini.model)
+            self._model_name = self._settings.gemini.model
+            Settings.llm = self._default_model
+        else:
+            self._model_name = self._settings.ollama.llm
+            self._default_model = LocalRAGModel.set(self._model_name, host=host)
+            Settings.llm = self._default_model
+        
         self._system_prompt = get_system_prompt("eng", is_rag_prompt=False)
         self._engine = LocalChatEngine(host=host)
-        self._default_model = LocalRAGModel.set(self._model_name, host=host)
         self._query_engine = None
         self._ingestion = LocalDataIngestion()
         self._vector_store = LocalVectorStore(host=host)
-        Settings.llm = LocalRAGModel.set(self._model_name, host=host)
         # Defer embedding model loading until needed (when documents are uploaded)
         self._embed_model_loaded = False
         

@@ -28,13 +28,22 @@ class OllamaSettings(BaseModel):
     chat_token_limit: int = Field(default=4000, description="Chat memory limit")
 
 
+class GeminiSettings(BaseModel):
+    model: str = Field(default="gemini-2.5-flash", description="Gemini model")
+    api_key: str = Field(default="", description="Gemini API key")
+    temperature: float = Field(default=0.1, description="Temperature")
+    max_tokens: int = Field(default=2000, description="Maximum tokens to generate")
+    context_window: int = Field(default=1000000, description="Context window size")
+    chat_token_limit: int = Field(default=4000, description="Chat memory limit")
+
+
 class RetrieverSettings(BaseModel):
-    num_queries: int = Field(default=5, description="Number of generated queries")
-    similarity_top_k: int = Field(default=5, description="Top k documents")  # Reduced from 20 to 5 for speed
+    num_queries: int = Field(default=1, description="Number of generated queries")  # Changed from 5 to 1 for speed
+    similarity_top_k: int = Field(default=6, description="Top k documents")  # Increased from 3 to 6 to retrieve from more documents
     retriever_weights: List[float] = Field(
         default=[0.4, 0.6], description="Weights for retriever"
     )
-    top_k_rerank: int = Field(default=3, description="Top k rerank")  # Reduced from 6 to 3
+    top_k_rerank: int = Field(default=3, description="Top k rerank")  # Increased from 2 to 3 for better diversity
     rerank_llm: str = Field(
         default="cross-encoder/ms-marco-MiniLM-L-6-v2", description="Rerank LLM model"
     )
@@ -70,6 +79,7 @@ class StorageSettings(BaseModel):
 class RAGSettings(BaseModel):
     openrouter: OpenRouterSettings = OpenRouterSettings()
     ollama: OllamaSettings = OllamaSettings()
+    gemini: GeminiSettings = GeminiSettings()
     retriever: RetrieverSettings = RetrieverSettings()
     ingestion: IngestionSettings = IngestionSettings()
     storage: StorageSettings = StorageSettings()

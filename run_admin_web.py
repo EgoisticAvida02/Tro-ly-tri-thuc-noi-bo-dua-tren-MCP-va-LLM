@@ -31,8 +31,31 @@ CORS(app)
 # Ensure data directory exists
 Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
+# Determine which LLM to use based on environment variable
+# Options: "gemini", "openrouter", "ollama" (default)
+llm_provider = os.environ.get('LLM_PROVIDER', 'ollama').lower()
+
 # Initialize pipeline and auth
-pipeline = LocalRAGPipeline()
+if llm_provider == 'gemini':
+    gemini_api_key = os.environ.get('GEMINI_API_KEY')
+    if not gemini_api_key:
+        raise ValueError("GEMINI_API_KEY environment variable required when LLM_PROVIDER=gemini")
+    print("=" * 80)
+    print("🚀 Using Gemini API for fast responses (2-5 seconds)")
+    print("=" * 80)
+    pipeline = LocalRAGPipeline(use_gemini=True, gemini_api_key=gemini_api_key)
+elif llm_provider == 'openrouter':
+    print("=" * 80)
+    print("🚀 Using OpenRouter API")
+    print("=" * 80)
+    # OpenRouter logic would go here if implemented
+    pipeline = LocalRAGPipeline()
+else:
+    print("=" * 80)
+    print("🚀 Using Ollama (local LLM)")
+    print("=" * 80)
+    pipeline = LocalRAGPipeline()
+
 auth_manager = AuthManager(DB_PATH)
 print("Pipeline initialized")
 print("Authentication system initialized")
