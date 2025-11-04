@@ -27,7 +27,7 @@ echo "Starting user server..."
 nohup poetry run python run_user_web.py > user.log 2>&1 &
 USER_PID=$!
 
-sleep 3
+sleep 5
 
 echo ""
 echo "=========================================="
