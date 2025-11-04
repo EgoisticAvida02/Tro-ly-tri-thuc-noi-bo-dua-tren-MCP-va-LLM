@@ -794,7 +794,7 @@ git clone <YOUR_REPO_URL> knowledge-system
 cd knowledge-system
 
 # Pull LLaMA model (this takes ~5 minutes, 2GB download)
-ollama pull llama3.2:3b
+ollama pull qwen3:0.6b
 
 # Start Ollama server in background
 nohup ollama serve > ollama.log 2>&1 &

@@ -14,7 +14,7 @@ class OpenRouterSettings(BaseModel):
 
 
 class OllamaSettings(BaseModel):
-    llm: str = Field(default="llama3.2:3b", description="LLM model")
+    llm: str = Field(default="qwen3:0.6b", description="LLM model")
     keep_alive: str = Field(default="1h", description="Keep alive time for the server")
     tfs_z: float = Field(default=1.0, description="TFS normalization factor")
     top_k: int = Field(default=40, description="Top k sampling")

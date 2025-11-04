@@ -84,7 +84,7 @@ git clone https://github.com/EgoisticAvida02/Tro-ly-tri-thuc-noi-bo-dua-tren-MCP
 cd knowledge-system
 
 # Pull LLaMA model (2GB download, ~5 phút)
-ollama pull llama3.2:3b
+ollama pull qwen3:0.6b
 
 # Khởi động Ollama server
 nohup ollama serve > ollama.log 2>&1 &
@@ -216,7 +216,7 @@ Browser → AWS EC2 (m7i-flex.large)
 - **Cloud**: AWS EC2
 - **Instance**: m7i-flex.large (2 vCPU, 8GB RAM)
 - **OS**: Ubuntu 22.04 LTS
-- **LLM**: LLaMA 3.2 3B (3 tỷ parameters)
+- **LLM**: Qwen 3 0.6B (600 million parameters)
 - **Embedding**: BAAI/bge-small-en-v1.5
 - **Vector DB**: ChromaDB
 - **Backend**: Flask (Python 3.10+)
