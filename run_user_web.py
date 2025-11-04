@@ -106,7 +106,7 @@ def index():
 @app.route('/login')
 def login_page():
     """Serve the login page"""
-    # If already logged in, redirect to appropriate page based on current server
+    # If already logged in, redirect to appropriate page based on role
     token = request.cookies.get('session_token')
     if token:
         is_valid, user_info = auth_manager.validate_session(token)
@@ -116,8 +116,13 @@ def login_page():
                 host = request.host.rsplit(':', 1)[0]
                 return redirect(f'http://{host}:7860/admin')
             else:
-                # User already logged in, redirect to home page to avoid loop
-                return redirect('/')
+                # User already logged in, go to home page
+                # Don't redirect to avoid loop, just serve the home page directly
+                response = send_from_directory(UI_DIR, 'user_index.html')
+                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                response.headers['Pragma'] = 'no-cache'
+                response.headers['Expires'] = '0'
+                return response
     
     return send_from_directory(UI_DIR, 'login.html')
 

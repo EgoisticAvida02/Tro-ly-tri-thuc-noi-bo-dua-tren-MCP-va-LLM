@@ -297,9 +297,13 @@
                     // Redirect based on user role from database
                     setTimeout(() => {
                         if (data.user.role === 'admin') {
-                            window.location.href = 'http://localhost:7860/admin';
+                            // Redirect to admin on port 7860
+                            const host = window.location.hostname;
+                            window.location.href = `http://${host}:7860/admin`;
                         } else {
-                            window.location.href = 'http://localhost:7861/';
+                            // Redirect to user home on port 7861
+                            const host = window.location.hostname;
+                            window.location.href = `http://${host}:7861/`;
                         }
                     }, 1000);
                 } else {
