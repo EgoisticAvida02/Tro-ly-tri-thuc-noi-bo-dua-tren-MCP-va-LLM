@@ -9,13 +9,16 @@ from .core import (
 from llama_index.core import Settings
 from llama_index.core.chat_engine.types import StreamingAgentChatResponse
 from llama_index.core.prompts import ChatMessage, MessageRole
+from .setting import RAGSettings
 
 
 class LocalRAGPipeline:
     def __init__(self, host: str = "localhost", auto_init_docs: bool = True) -> None:
+        # Load settings
+        self._settings = RAGSettings()
         self._host = host
         self._language = "eng"
-        self._model_name = "qwen2:latest"  # Using local Ollama model
+        self._model_name = self._settings.ollama.llm  # Get from settings: llama3.2:3b
         self._system_prompt = get_system_prompt("eng", is_rag_prompt=False)
         self._engine = LocalChatEngine(host=host)
         self._default_model = LocalRAGModel.set(self._model_name, host=host)
