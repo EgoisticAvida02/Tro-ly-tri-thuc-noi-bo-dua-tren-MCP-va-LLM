@@ -667,6 +667,35 @@ def submit_report():
         }), 500
 
 
+# @app.route('/api/download/<int:doc_id>', methods=['GET'])
+# def download_document(doc_id):
+#     """Download a document file"""
+#     try:
+#         doc = document_manager.get_document(doc_id)
+#         if not doc:
+#             return jsonify({
+#                 'success': False,
+#                 'error': 'Document not found'
+#             }), 404
+        
+#         file_path = doc['file_path']
+#         if not os.path.exists(file_path):
+#             return jsonify({
+#                 'success': False,
+#                 'error': 'File not found on disk'
+#             }), 404
+        
+#         directory = os.path.dirname(file_path)
+#         filename = os.path.basename(file_path)
+        
+#         return send_from_directory(directory, filename, as_attachment=True)
+        
+#     except Exception as e:
+#         return jsonify({
+#             'success': False,
+#             'error': str(e)
+#         }), 500
+
 @app.route('/api/download/<int:doc_id>', methods=['GET'])
 def download_document(doc_id):
     """Download a document file"""
@@ -677,24 +706,33 @@ def download_document(doc_id):
                 'success': False,
                 'error': 'Document not found'
             }), 404
-        
-        file_path = doc['file_path']
+
+        filename = doc.get('filename') or doc.get('original_filename')
+        if not filename:
+            return jsonify({
+                'success': False,
+                'error': 'Missing filename in database'
+            }), 500
+
+        base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'data')
+        file_path = os.path.join(base_dir, filename)
+
         if not os.path.exists(file_path):
             return jsonify({
                 'success': False,
-                'error': 'File not found on disk'
+                'error': f'File not found on disk: {file_path}'
             }), 404
         
         directory = os.path.dirname(file_path)
         filename = os.path.basename(file_path)
-        
         return send_from_directory(directory, filename, as_attachment=True)
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
+
 
 
 @app.route('/api/clear-chat', methods=['POST'])
