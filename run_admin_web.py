@@ -129,6 +129,7 @@ def index():
     return response
 
 
+
 @app.route('/admin')
 def admin_page():
     """Serve the admin interface (requires admin authentication)"""

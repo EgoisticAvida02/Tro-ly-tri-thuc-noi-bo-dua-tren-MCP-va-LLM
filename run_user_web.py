@@ -625,6 +625,47 @@ def query():
         }), 500
 
 
+# @app.route('/api/report', methods=['POST'])
+# def submit_report():
+#     """Submit a user report about incorrect/missing information"""
+#     try:
+#         data = request.json
+#         session_id = data.get('session_id')
+#         report_type = data.get('report_type', 'incorrect')
+#         details = data.get('details', '')
+        
+#         # Get last response from session
+#         last_response = None
+#         if session_id and session_id in sessions:
+#             last_response = sessions[session_id].get('last_response')
+        
+#         if not last_response:
+#             return jsonify({
+#                 'success': False,
+#                 'error': 'No recent conversation found for this report'
+#             }), 400
+        
+#         # Create report
+#         report_id = report_manager.create_report(
+#             question=last_response['question'],
+#             answer=last_response['answer'],
+#             report_type=report_type,
+#             report_reason=report_type,  # Use report_type as reason
+#             user_comment=details  # Details go into user_comment
+#         )
+        
+#         return jsonify({
+#             'success': True,
+#             'report_id': report_id,
+#             'message': 'Report submitted successfully. Thank you for your feedback!'
+#         })
+        
+#     except Exception as e:
+#         return jsonify({
+#             'success': False,
+#             'error': str(e)
+#         }), 500
+
 @app.route('/api/report', methods=['POST'])
 def submit_report():
     """Submit a user report about incorrect/missing information"""
@@ -633,39 +674,49 @@ def submit_report():
         session_id = data.get('session_id')
         report_type = data.get('report_type', 'incorrect')
         details = data.get('details', '')
-        
-        # Get last response from session
+
+        # 🧠 Lấy phản hồi cuối cùng từ session (nếu có)
         last_response = None
         if session_id and session_id in sessions:
             last_response = sessions[session_id].get('last_response')
-        
+
+        # 🧩 Nếu không tìm thấy hội thoại gần nhất → vẫn cho phép gửi báo cáo
         if not last_response:
+            print(f"[WARN] No last_response found for session {session_id}. Creating fallback report.")
+            report_id = report_manager.create_report(
+                question="(No conversation found)",
+                answer="(No AI response)",
+                report_type=report_type,
+                report_reason=report_type,
+                user_comment=details
+            )
             return jsonify({
-                'success': False,
-                'error': 'No recent conversation found for this report'
-            }), 400
-        
-        # Create report
+                'success': True,
+                'report_id': report_id,
+                'message': 'Report submitted without conversation context.'
+            })
+
+        # ✅ Nếu có hội thoại → tạo báo cáo đầy đủ
         report_id = report_manager.create_report(
-            question=last_response['question'],
-            answer=last_response['answer'],
+            question=last_response.get('question', '(Unknown question)'),
+            answer=last_response.get('answer', '(Unknown answer)'),
             report_type=report_type,
-            report_reason=report_type,  # Use report_type as reason
-            user_comment=details  # Details go into user_comment
+            report_reason=report_type,
+            user_comment=details
         )
-        
+
         return jsonify({
             'success': True,
             'report_id': report_id,
             'message': 'Report submitted successfully. Thank you for your feedback!'
         })
-        
+
     except Exception as e:
+        print(f"[ERROR] Report submission failed: {str(e)}")  # Log lỗi ra console
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
-
 
 # @app.route('/api/download/<int:doc_id>', methods=['GET'])
 # def download_document(doc_id):
