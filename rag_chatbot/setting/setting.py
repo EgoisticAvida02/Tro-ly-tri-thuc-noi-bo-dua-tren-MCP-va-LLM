@@ -32,18 +32,18 @@ class GeminiSettings(BaseModel):
     model: str = Field(default="gemini-2.5-flash", description="Gemini model")
     api_key: str = Field(default="", description="Gemini API key")
     temperature: float = Field(default=0.1, description="Temperature")
-    max_tokens: int = Field(default=2000, description="Maximum tokens to generate")
+    max_tokens: int = Field(default=1000, description="Maximum tokens to generate")  # Reduced from 2000 to 1000 to save tokens
     context_window: int = Field(default=1000000, description="Context window size")
-    chat_token_limit: int = Field(default=12000, description="Chat memory limit")  # Increased from 8000 to 12000 for more retrieval context
+    chat_token_limit: int = Field(default=6000, description="Chat memory limit")  # Reduced from 12000 to 6000 to save tokens
 
 
 class RetrieverSettings(BaseModel):
-    num_queries: int = Field(default=3, description="Number of generated queries")  # Increased from 1 to 3 for better retrieval diversity
-    similarity_top_k: int = Field(default=5, description="Top k documents")  # Increased from 4 to 5 for more context
+    num_queries: int = Field(default=2, description="Number of generated queries")  # Reduced from 3 to 2 to save tokens
+    similarity_top_k: int = Field(default=3, description="Top k documents")  # Reduced from 5 to 3 to save tokens
     retriever_weights: List[float] = Field(
         default=[0.4, 0.6], description="Weights for retriever"
     )
-    top_k_rerank: int = Field(default=4, description="Top k rerank")  # Increased from 3 to 4 for better answer quality
+    top_k_rerank: int = Field(default=3, description="Top k rerank")  # Reduced from 4 to 3 to save tokens
     rerank_llm: str = Field(
         default="cross-encoder/ms-marco-MiniLM-L-6-v2", description="Rerank LLM model"
     )
@@ -56,8 +56,8 @@ class IngestionSettings(BaseModel):
     )
     embed_batch_size: int = Field(default=32, description="Embedding batch size")
     cache_folder: str = Field(default="data/huggingface", description="Cache folder")
-    chunk_size: int = Field(default=800, description="Document chunk size")  # Reduced from 1024 to 800 to avoid token limit
-    chunk_overlap: int = Field(default=100, description="Document chunk overlap")  # Reduced from 128 to 100
+    chunk_size: int = Field(default=600, description="Document chunk size")  # Reduced from 800 to 600 to save tokens
+    chunk_overlap: int = Field(default=50, description="Document chunk overlap")  # Reduced from 100 to 50 to save tokens
     chunking_regex: str = Field(
         default="[^,.;。？！]+[,.;。？！]?", description="Chunking regex"
     )

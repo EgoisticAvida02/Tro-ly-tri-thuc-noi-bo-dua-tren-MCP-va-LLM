@@ -43,23 +43,27 @@ class LocalRAGPipeline:
         self._vector_store = LocalVectorStore(host=host)
         # Defer embedding model loading until needed (when documents are uploaded)
         self._embed_model_loaded = False
+        self._data_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'data'))
         
         # Initialize query engine with existing documents if available
         if auto_init_docs:
             self._initialize_existing_documents()
     
     def _initialize_existing_documents(self):
-        """Load existing documents from database and reprocess them on startup"""
+        """Load existing documents from database - uses cached embeddings when available"""
         try:
             from rag_chatbot.database import document_manager
             import os
+            import time
+            
+            start_time = time.time()
             
             # Get all documents from database
             docs = document_manager.get_all_documents()
             
             if docs and len(docs) > 0:
-                print(f"Found {len(docs)} documents in database, loading...")
-                # Documents exist, need to reprocess them
+                print(f"[STARTUP] Found {len(docs)} documents in database")
+                # Documents exist, need to load them (cache will be used if available)
                 self._ensure_embed_model()
                 
                 # Collect all file paths
@@ -68,10 +72,12 @@ class LocalRAGPipeline:
                     file_path = os.path.join("data/data", doc["filename"])
                     if os.path.exists(file_path):
                         file_paths.append(file_path)
+                    else:
+                        print(f"[STARTUP] Warning: File not found: {file_path}")
                 
                 if file_paths:
-                    print(f"Processing {len(file_paths)} files...")
-                    # Process all documents at once
+                    print(f"[STARTUP] Loading {len(file_paths)} files (cached embeddings will be used when available)...")
+                    # Process all documents at once - caching happens internally
                     all_nodes = self._ingestion.store_nodes(
                         input_files=file_paths,
                         embed_nodes=True,
@@ -79,16 +85,21 @@ class LocalRAGPipeline:
                     )
                     
                     if all_nodes:
-                        print(f"Creating query engine with {len(all_nodes)} total nodes...")
+                        elapsed = time.time() - start_time
+                        print(f"[STARTUP] Creating query engine with {len(all_nodes)} total nodes...")
                         # Create query engine with all nodes
                         self._query_engine = self._engine.set_engine(
                             llm=self._default_model,
                             nodes=all_nodes,
                             language=self._language
                         )
-                        print("Query engine initialized successfully!")
+                        print(f"[STARTUP] ✓ Documents ready in {elapsed:.1f}s")
+                    else:
+                        print("[STARTUP] No nodes were extracted from documents")
+            else:
+                print("[STARTUP] No documents in database - ready for uploads")
         except Exception as e:
-            print(f"Error initializing documents: {e}")
+            print(f"[STARTUP] Error initializing documents: {e}")
             import traceback
             traceback.print_exc()
 
@@ -119,12 +130,16 @@ class LocalRAGPipeline:
         )
 
     def set_model(self):
-        Settings.llm = LocalRAGModel.set(
-            model_name=self._model_name,
-            system_prompt=self._system_prompt,
-            host=self._host,
-        )
-        self._default_model = Settings.llm
+        # Don't override if using Gemini
+        if self._use_gemini:
+            Settings.llm = self._default_model
+        else:
+            Settings.llm = LocalRAGModel.set(
+                model_name=self._model_name,
+                system_prompt=self._system_prompt,
+                host=self._host,
+            )
+            self._default_model = Settings.llm
 
     def reset_engine(self):
         self._query_engine = self._engine.set_engine(
@@ -171,9 +186,12 @@ class LocalRAGPipeline:
         self.set_engine()
 
     def set_engine(self):
+        nodes = self._ingestion.get_all_nodes()
+        if not nodes:
+            nodes = self._ingestion.get_ingested_nodes()
         self._query_engine = self._engine.set_engine(
             llm=self._default_model,
-            nodes=self._ingestion.get_ingested_nodes(),
+            nodes=nodes,
             language=self._language,
         )
 
@@ -185,23 +203,84 @@ class LocalRAGPipeline:
                 history.append(ChatMessage(role=MessageRole.ASSISTANT, content=chat[1]))
         return history
 
+    def _load_missing_files(self, missing_files: list[str]) -> list[str]:
+        if not missing_files:
+            return []
+
+        os.makedirs(self._data_dir, exist_ok=True)
+        found_paths = [
+            os.path.join(self._data_dir, name)
+            for name in missing_files
+            if name and os.path.exists(os.path.join(self._data_dir, name))
+        ]
+
+        if not found_paths:
+            return []
+
+        try:
+            self.store_nodes(input_files=found_paths)
+            self.set_chat_mode()
+            return found_paths
+        except Exception as exc:
+            print(f"[PIPELINE] Failed to reload missing documents: {exc}")
+            return []
+
+    def _build_filtered_engine(self, selected_files: list[str]):
+        nodes, missing_files = self._ingestion.get_nodes_for_files(selected_files)
+        if missing_files:
+            reloaded = self._load_missing_files(missing_files)
+            if reloaded:
+                nodes, missing_files = self._ingestion.get_nodes_for_files(selected_files)
+        if nodes:
+            print(
+                f"[PIPELINE] Building filtered engine for {len(nodes)} nodes across {len(selected_files)} files"
+            )
+            filtered_engine = self._engine.set_engine(
+                llm=self._default_model,
+                nodes=nodes,
+                language=self._language,
+            )
+            return filtered_engine, missing_files
+        return None, missing_files
+
     def query(
-        self, mode: str, message: str, chatbot: list[list[str]]
+        self,
+        mode: str,
+        message: str,
+        chatbot: list[list[str]],
+        selected_files: list[str] | None = None,
     ) -> StreamingAgentChatResponse:
         import time
         
         if not self._query_engine:
             raise RuntimeError("No documents loaded. Please upload documents first in the Admin interface.")
-        
+
+        query_engine = self._query_engine
+        missing_files: list[str] = []
+        if selected_files:
+            filtered_engine, missing_files = self._build_filtered_engine(selected_files)
+            if missing_files:
+                print(f"[PIPELINE] Missing nodes for files: {missing_files}")
+            if filtered_engine:
+                query_engine = filtered_engine
+            else:
+                missing_display = ", ".join(missing_files) if missing_files else "the selected documents"
+                raise ValueError(
+                    f"The system couldn't find the selected documents ({missing_display}). Please refresh the page or contact an administrator."
+                )
+
         start = time.time()
         print(f"[PIPELINE] Starting query: '{message[:50]}...'")
-        
+        if selected_files:
+            print(f"[PIPELINE] Restricting retrieval to: {selected_files}")
+
         if mode == "chat":
             history = self.get_history(chatbot)
-            result = self._query_engine.stream_chat(message, history)
+            result = query_engine.stream_chat(message, history)
         else:
-            self._query_engine.reset()
-            result = self._query_engine.stream_chat(message)
+            if hasattr(query_engine, "reset"):
+                query_engine.reset()
+            result = query_engine.stream_chat(message)
         
         print(f"[PIPELINE] Query engine returned in {time.time() - start:.2f}s")
         return result

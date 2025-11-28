@@ -1,6 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
 dist/
-data/
-assets/
-.vscode/
-*.ipynb
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
 .venv/**
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Data directories (will be mounted as volumes)
+data/ollama/
+data/chroma/
+data/huggingface/
+
+# Logs
+*.log
+logging.log
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
+# Notebooks
+notebooks/
+*.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp

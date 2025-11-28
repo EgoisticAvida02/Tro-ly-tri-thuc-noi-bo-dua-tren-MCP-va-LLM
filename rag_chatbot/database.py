@@ -12,8 +12,9 @@ class Database:
     """Database handler for the knowledge system"""
     
     def __init__(self, db_path: str = "data/knowledge_system.db"):
-        self.db_path = db_path
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        resolved_path = Path(db_path).resolve()
+        self.db_path = str(resolved_path)
+        resolved_path.parent.mkdir(parents=True, exist_ok=True)
         self.init_database()
     
     def get_connection(self):
@@ -69,6 +70,73 @@ class Database:
                 sources TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+        
+        # User roles and preferences table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_roles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER UNIQUE NOT NULL,
+                role_type TEXT NOT NULL,
+                department TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+        
+        # Technical news sources table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS news_sources (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_name TEXT NOT NULL,
+                source_url TEXT NOT NULL,
+                source_type TEXT NOT NULL,
+                role_type TEXT NOT NULL,
+                update_frequency TEXT DEFAULT 'daily',
+                is_active INTEGER DEFAULT 1,
+                last_fetched TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Technical articles/news table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS technical_articles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_id INTEGER,
+                title TEXT NOT NULL,
+                summary TEXT,
+                content TEXT,
+                url TEXT NOT NULL,
+                published_date TIMESTAMP,
+                role_type TEXT,
+                is_embedded INTEGER DEFAULT 0,
+                view_count INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (source_id) REFERENCES news_sources (id)
+            )
+        """)
+        
+        # User-uploaded documents (pending approval)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_documents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                filename TEXT NOT NULL,
+                original_filename TEXT NOT NULL,
+                file_type TEXT NOT NULL,
+                file_size INTEGER,
+                uploaded_by INTEGER NOT NULL,
+                role_type TEXT,
+                description TEXT,
+                status TEXT DEFAULT 'pending',
+                approved_by INTEGER,
+                approved_at TIMESTAMP,
+                rejection_reason TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (uploaded_by) REFERENCES users (id),
+                FOREIGN KEY (approved_by) REFERENCES users (id)
             )
         """)
         
@@ -370,3 +438,390 @@ db = Database()
 document_manager = DocumentManager(db)
 report_manager = ReportManager(db)
 chat_history_manager = ChatHistoryManager(db)
+
+
+class UserRoleManager:
+    """Manager for user roles and preferences"""
+    
+    def __init__(self, db: Database):
+        self.db = db
+    
+    def set_user_role(self, user_id: int, role_type: str, department: str = None) -> bool:
+        """Set or update user's role"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        # Check if role exists
+        cursor.execute("SELECT id FROM user_roles WHERE user_id = ?", (user_id,))
+        existing = cursor.fetchone()
+        
+        if existing:
+            cursor.execute("""
+                UPDATE user_roles 
+                SET role_type = ?, department = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+            """, (role_type, department, user_id))
+        else:
+            cursor.execute("""
+                INSERT INTO user_roles (user_id, role_type, department)
+                VALUES (?, ?, ?)
+            """, (user_id, role_type, department))
+        
+        conn.commit()
+        conn.close()
+        return True
+    
+    def get_user_role(self, user_id: int) -> Optional[Dict]:
+        """Get user's role"""
+        conn = self.db.get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM user_roles WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        return dict(row) if row else None
+
+
+class NewsManager:
+    """Manager for technical news and articles"""
+    
+    def __init__(self, db: Database):
+        self.db = db
+    
+    def add_news_source(self, source_name: str, source_url: str, source_type: str, 
+                        role_type: str, update_frequency: str = 'daily') -> int:
+        """Add a new news source"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO news_sources 
+            (source_name, source_url, source_type, role_type, update_frequency)
+            VALUES (?, ?, ?, ?, ?)
+        """, (source_name, source_url, source_type, role_type, update_frequency))
+        
+        source_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return source_id
+    
+    def get_sources_by_role(self, role_type: str) -> List[Dict]:
+        """Get news sources for a specific role"""
+        conn = self.db.get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM news_sources 
+            WHERE role_type = ? AND is_active = 1
+            ORDER BY source_name
+        """, (role_type,))
+        
+        sources = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return sources
+    
+    def add_article(self, source_id: int, title: str, summary: str, content: str,
+                    url: str, published_date: str, role_type: str) -> int:
+        """Add a new article"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        # Check if article already exists (by URL)
+        cursor.execute("SELECT id FROM technical_articles WHERE url = ?", (url,))
+        existing = cursor.fetchone()
+        
+        if existing:
+            conn.close()
+            return existing[0]
+        
+        cursor.execute("""
+            INSERT INTO technical_articles 
+            (source_id, title, summary, content, url, published_date, role_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (source_id, title, summary, content, url, published_date, role_type))
+        
+        article_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return article_id
+    
+    def get_articles_by_role(self, role_type: str, limit: int = 20) -> List[Dict]:
+        """Get recent articles for a specific role"""
+        conn = self.db.get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT a.*, s.source_name 
+            FROM technical_articles a
+            LEFT JOIN news_sources s ON a.source_id = s.id
+            WHERE a.role_type = ?
+            ORDER BY a.published_date DESC
+            LIMIT ?
+        """, (role_type, limit))
+        
+        articles = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return articles
+
+    def get_article_by_id(self, article_id: int) -> Optional[Dict]:
+        """Fetch a single article by ID."""
+        conn = self.db.get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT a.*, s.source_name FROM technical_articles a LEFT JOIN news_sources s ON a.source_id = s.id WHERE a.id = ?", (article_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    def update_article_content(self, article_id: int, content: str) -> bool:
+        """Persist fetched article content."""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE technical_articles SET content = ? WHERE id = ?", (content, article_id))
+        success = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        return success
+    
+    def mark_article_embedded(self, article_id: int) -> bool:
+        """Mark article as embedded in vector store"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE technical_articles 
+            SET is_embedded = 1
+            WHERE id = ?
+        """, (article_id,))
+        
+        success = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        return success
+    
+    def increment_view_count(self, article_id: int) -> bool:
+        """Increment article view count"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE technical_articles 
+            SET view_count = view_count + 1
+            WHERE id = ?
+        """, (article_id,))
+        
+        conn.commit()
+        conn.close()
+        return True
+
+    def find_article_by_title(self, title_query: str) -> Optional[Dict]:
+        """Find a single article whose title matches the provided text."""
+        if not title_query:
+            return None
+
+        conn = self.db.get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT a.*, s.source_name
+            FROM technical_articles a
+            LEFT JOIN news_sources s ON a.source_id = s.id
+            WHERE LOWER(a.title) LIKE LOWER(?)
+            ORDER BY a.published_date DESC
+            LIMIT 1
+            """,
+            (f"%{title_query}%",)
+        )
+
+        row = cursor.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+
+class UserDocumentManager:
+    """Manager for user-uploaded documents pending approval"""
+    
+    def __init__(self, db: Database):
+        self.db = db
+        # Auth database stores user profile information (username/full name)
+        base_path = Path(self.db.db_path)
+        self.auth_db_path = str(base_path.with_name('knowledge_base.db'))
+
+    def _get_user_info_map(self, user_ids: List[int], _retry: bool = False) -> Dict[int, Dict]:
+        """Fetch user info for provided IDs from authentication database."""
+        unique_ids = sorted({uid for uid in user_ids if uid})
+        if not unique_ids:
+            return {}
+
+        auth_path = Path(self.auth_db_path)
+        if not auth_path.exists():
+            return {}
+
+        try:
+            conn = sqlite3.connect(self.auth_db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            placeholders = ','.join('?' for _ in unique_ids)
+            cursor.execute(
+                f"SELECT id, username, full_name, email FROM users WHERE id IN ({placeholders})",
+                tuple(unique_ids)
+            )
+            user_map = {row['id']: dict(row) for row in cursor.fetchall()}
+            conn.close()
+            return user_map
+        except sqlite3.OperationalError as exc:
+            message = str(exc).lower()
+            if "no such table" in message and "users" in message and not _retry:
+                try:
+                    from rag_chatbot.auth import AuthManager
+                    AuthManager(self.auth_db_path)
+                    return self._get_user_info_map(user_ids, _retry=True)
+                except Exception as bootstrap_err:
+                    print(f"Warning: could not initialize auth DB: {bootstrap_err}")
+            print(f"Warning: could not load uploader info: {exc}")
+            return {}
+        except Exception as e:
+            print(f"Warning: could not load uploader info: {e}")
+            return {}
+
+    def _attach_uploader_metadata(self, documents: List[Dict]) -> List[Dict]:
+        """Add uploader_name/email fields using auth database (best effort)."""
+        user_ids = [doc.get('uploaded_by') for doc in documents if doc.get('uploaded_by')]
+        user_map = self._get_user_info_map(user_ids)
+        for doc in documents:
+            uploader_id = doc.get('uploaded_by')
+            user = user_map.get(uploader_id)
+            if user:
+                full_name = user.get('full_name')
+                username = user.get('username')
+                doc['uploader_name'] = full_name or username or f"User #{uploader_id}"
+                doc['uploader_username'] = username
+                doc['uploader_email'] = user.get('email')
+            else:
+                doc['uploader_name'] = f"User #{uploader_id}" if uploader_id else 'Unknown'
+                doc['uploader_username'] = None
+                doc['uploader_email'] = None
+        return documents
+    
+    def add_user_document(self, filename: str, original_filename: str, file_type: str,
+                          file_size: int, uploaded_by: int, role_type: str, 
+                          description: str = None) -> int:
+        """Add a user-uploaded document"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO user_documents 
+            (filename, original_filename, file_type, file_size, uploaded_by, role_type, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (filename, original_filename, file_type, file_size, uploaded_by, role_type, description))
+        
+        doc_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return doc_id
+    
+    def get_pending_documents(self) -> List[Dict]:
+        """Get all documents pending approval"""
+        conn = self.db.get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM user_documents 
+            WHERE status = 'pending'
+            ORDER BY created_at DESC
+        """)
+        
+        documents = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return self._attach_uploader_metadata(documents)
+    
+    def get_user_documents(self, user_id: int) -> List[Dict]:
+        """Get all documents uploaded by a user"""
+        conn = self.db.get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM user_documents 
+            WHERE uploaded_by = ?
+            ORDER BY created_at DESC
+        """, (user_id,))
+        
+        documents = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return self._attach_uploader_metadata(documents)
+    
+    def approve_document(self, doc_id: int, approved_by: int) -> bool:
+        """Approve a user document"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE user_documents 
+            SET status = 'approved', approved_by = ?, approved_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (approved_by, doc_id))
+        
+        success = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        return success
+    
+    def reject_document(self, doc_id: int, approved_by: int, reason: str) -> bool:
+        """Reject a user document"""
+        conn = self.db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE user_documents 
+            SET status = 'rejected', approved_by = ?, approved_at = CURRENT_TIMESTAMP,
+                rejection_reason = ?
+            WHERE id = ?
+        """, (approved_by, reason, doc_id))
+        
+        success = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        return success
+    
+    def get_approved_documents_by_role(self, role_type: str) -> List[Dict]:
+        """Get all approved documents for a role"""
+        conn = self.db.get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM user_documents 
+            WHERE status = 'approved' AND role_type = ?
+            ORDER BY (approved_at IS NULL), approved_at DESC, created_at DESC
+        """, (role_type,))
+        
+        documents = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return self._attach_uploader_metadata(documents)
+    
+    def get_document(self, doc_id: int) -> Optional[Dict]:
+        """Get a specific user document"""
+        conn = self.db.get_connection()
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM user_documents WHERE id = ?", (doc_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        return dict(row) if row else None
+
+
+# Initialize global managers
+user_role_manager = UserRoleManager(db)
+news_manager = NewsManager(db)
+user_document_manager = UserDocumentManager(db)

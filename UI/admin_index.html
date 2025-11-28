@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Internal Knowledge System</title>
-    <link rel="stylesheet" href="admin_styles_new.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin_styles.css?v=3.2">
 </head>
+
 <body>
     <!-- Sidebar -->
     <div class="sidebar">
@@ -16,27 +18,27 @@
                 <span>KNOWLEDGE SYSTEM</span>
             </div>
         </div>
-        
+
         <nav class="sidebar-nav">
             <div class="nav-item active" data-page="dashboard">
                 <i class="fas fa-home"></i>
                 <span>Dashboard</span>
             </div>
-            
-            <div class="nav-section-title">INTERFACE</div>
-            
+
+            <div class="nav-section-title">Interface</div>
+
             <div class="nav-item" data-page="documents">
                 <i class="fas fa-file-alt"></i>
                 <span>Documents</span>
             </div>
-            
+
             <div class="nav-item" data-page="reports">
                 <i class="fas fa-flag"></i>
                 <span>Reports</span>
                 <span class="badge" id="sidebar-badge">0</span>
             </div>
         </nav>
-        
+
         <div class="sidebar-footer">
             <div class="admin-profile">
                 <div class="admin-avatar">
@@ -58,16 +60,12 @@
         <!-- Top Bar -->
         <header class="topbar">
             <div class="topbar-left">
-                <button class="sidebar-toggle" id="sidebar-toggle">
+                <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
                     <i class="fas fa-bars"></i>
                 </button>
                 <h1 class="page-title" id="page-title">Dashboard</h1>
             </div>
             <div class="topbar-right">
-                <!-- <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search...">
-                </div> -->
                 <div class="notification-icon">
                     <i class="fas fa-bell"></i>
                     <span class="notification-badge" id="notification-badge">0</span>
@@ -84,7 +82,6 @@
                     <p class="page-subtitle">Overview of your system</p>
                 </div>
 
-                <!-- Statistics Cards -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon blue">
@@ -124,7 +121,6 @@
                     </div>
                 </div>
 
-                <!-- Recent Activity -->
                 <div class="card">
                     <div class="card-header">
                         <h3><i class="fas fa-history"></i> Recent Activity</h3>
@@ -142,7 +138,6 @@
                     <p class="page-subtitle">Upload and manage your knowledge base documents</p>
                 </div>
 
-                <!-- Statistics Cards -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon blue">
@@ -173,7 +168,6 @@
                     </div>
                 </div>
 
-                <!-- Upload Section -->
                 <div class="card">
                     <div class="card-header">
                         <h3><i class="fas fa-upload"></i> Upload Documents</h3>
@@ -189,13 +183,12 @@
                             </button>
                         </div>
                         <div id="selected-files" class="selected-files"></div>
-                        <button id="upload-btn" class="btn btn-success" style="display: none;">
+                        <button id="upload-btn" class="btn btn-success" disabled>
                             <i class="fas fa-upload"></i> Upload Selected Files
                         </button>
                     </div>
                 </div>
 
-                <!-- Documents List -->
                 <div class="card">
                     <div class="card-header">
                         <h3><i class="fas fa-list"></i> Documents List</h3>
@@ -230,7 +223,6 @@
                     <p class="page-subtitle">Review and manage user reports</p>
                 </div>
 
-                <!-- Statistics Cards -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon orange">
@@ -261,7 +253,6 @@
                     </div>
                 </div>
 
-                <!-- Filter Section -->
                 <div class="card">
                     <div class="card-body">
                         <div class="filter-section">
@@ -275,7 +266,6 @@
                     </div>
                 </div>
 
-                <!-- Reports List -->
                 <div class="card">
                     <div class="card-header">
                         <h3><i class="fas fa-list"></i> Reports List</h3>
@@ -315,9 +305,7 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body" id="report-detail-body">
-                <!-- Report details will be inserted here -->
-            </div>
+            <div class="modal-body" id="report-detail-body"></div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="state.closeModal('report-modal')">Close</button>
                 <button class="btn btn-success" id="resolve-btn" onclick="resolveReport()">
@@ -350,9 +338,9 @@
         </div>
     </div>
 
-    <!-- Toast Container -->
     <div id="toast-container"></div>
 
-    <script src="admin_script_new.js?v=3.0"></script>
+    <script src="admin_script.js?v=3.2"></script>
 </body>
+
 </html>

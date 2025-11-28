@@ -1,22 +1,57 @@
-FROM pytorch/pytorch:2.9.0-cuda12.8-cudnn9-runtime
+# Multi-stage build for smaller image size
+FROM python:3.10-slim as builder
 
-WORKDIR /code
+WORKDIR /app
 
-# Bring in a minimal set of system packages needed for builds and runtime
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
-    wget gcc libgl1 libglib2.0-0 libpython3-dev
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Configure runtime defaults and disable telemetry
-ENV UV_CACHE_DIR=/root/.cache/uv UV_COMPILE_BYTECODE=0 VIRTUAL_ENV=/opt/conda UV_LINK_MODE=copy
+# Install Poetry
+RUN pip install --no-cache-dir poetry==1.7.1
 
-# Bundle the application source into the image
-COPY . /code
+# Copy dependency files
+COPY pyproject.toml poetry.lock* ./
 
-# Sync the Python environment using uv
-RUN --mount=from=ghcr.io/astral-sh/uv,source=/uv,target=/bin/uv \
-    --mount=type=cache,id=kubox-serve,target=/root/.cache/uv \
-    uv sync --active --locked --no-dev
+# Install Python dependencies (without dev packages)
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi --no-root --no-dev
 
-CMD ["python", "-m", "rag_chatbot", "--host", "host.docker.internal"]
+# Final stage
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p data/data data/chat_history data/chroma data/huggingface
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV HF_HOME=/app/data/huggingface
+ENV TRANSFORMERS_CACHE=/app/data/huggingface
+
+# Expose ports
+EXPOSE 7860 7861
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:7860/health')" || exit 1
+
+# Default command (can be overridden in docker-compose)
+CMD ["python", "run_admin_web.py"]

@@ -82,7 +82,8 @@ class AuthManager:
         email: str,
         password: str,
         full_name: Optional[str] = None,
-        role: str = "user"
+        role: str = "user",
+        technical_role: Optional[str] = None
     ) -> Tuple[bool, str, Optional[int]]:
         """
         Register a new user
@@ -126,6 +127,11 @@ class AuthManager:
             user_id = cursor.lastrowid
             conn.commit()
             conn.close()
+            
+            # Set technical role if provided
+            if technical_role:
+                from .database import user_role_manager
+                user_role_manager.set_user_role(user_id, technical_role)
             
             return True, "User registered successfully", user_id
             

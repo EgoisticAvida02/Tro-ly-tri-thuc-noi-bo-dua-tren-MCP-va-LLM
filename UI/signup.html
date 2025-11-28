@@ -243,6 +243,26 @@
             </div>
 
             <div class="form-group">
+                <label for="technical-role">Technical Role</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-briefcase"></i>
+                    <select id="technical-role" name="technical-role" required
+                        style="width: 100%; padding: 12px 15px 12px 45px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; background: white;">
+                        <option value="">Select your role...</option>
+                        <option value="security_engineer">Security Engineer</option>
+                        <option value="devops_engineer">DevOps Engineer</option>
+                        <option value="backend_developer">Backend Developer</option>
+                        <option value="frontend_developer">Frontend Developer</option>
+                        <option value="data_scientist">Data Scientist</option>
+                        <option value="cloud_engineer">Cloud Engineer</option>
+                        <option value="qa_engineer">QA Engineer</option>
+                        <option value="product_manager">Product Manager</option>
+                    </select>
+                </div>
+                <small>This helps us show relevant technical news and content</small>
+            </div>
+
+            <div class="form-group">
                 <label for="password">Password</label>
                 <div class="input-wrapper">
                     <i class="fas fa-lock"></i>
@@ -323,6 +343,7 @@
             const fullname = document.getElementById('fullname').value;
             const username = document.getElementById('username').value;
             const email = document.getElementById('email').value;
+            const technicalRole = document.getElementById('technical-role').value;
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm-password').value;
             const terms = document.getElementById('terms').checked;
@@ -330,6 +351,11 @@
             // Validation
             if (!terms) {
                 showAlert('Please accept the Terms of Service and Privacy Policy');
+                return;
+            }
+
+            if (!technicalRole) {
+                showAlert('Please select your technical role');
                 return;
             }
 
@@ -357,7 +383,8 @@
                         username,
                         email,
                         password,
-                        full_name: fullname
+                        full_name: fullname,
+                        technical_role: technicalRole
                     })
                 });
 

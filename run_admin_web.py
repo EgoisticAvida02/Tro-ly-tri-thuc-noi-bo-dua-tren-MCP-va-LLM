@@ -7,7 +7,6 @@ Serves the HTML UI and provides REST API endpoints for:
 - User authentication
 """
 import os
-import shutil
 from flask import Flask, request, jsonify, send_from_directory, redirect
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -122,7 +121,7 @@ def index():
         return redirect(f'http://{host}:7861')  # Redirect regular users to user interface
     
     # Send response with no-cache headers to prevent back button issues
-    response = send_from_directory(UI_DIR, 'admin_index_new.html')
+    response = send_from_directory(UI_DIR, 'admin_index.html')
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
@@ -147,7 +146,7 @@ def admin_page():
         return jsonify({'error': 'Admin access required'}), 403
     
     # Send response with no-cache headers to prevent back button issues
-    response = send_from_directory(UI_DIR, 'admin_index_new.html')
+    response = send_from_directory(UI_DIR, 'admin_index.html')
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
@@ -182,11 +181,6 @@ def signup_page():
 @app.route('/<path:filename>')
 def serve_file(filename):
     """Serve static files (CSS, JS)"""
-    # Map old filenames to new filenames
-    if filename == 'admin_styles.css':
-        filename = 'admin_styles_new.css'
-    elif filename == 'admin_script.js':
-        filename = 'admin_script_new.js'
     return send_from_directory(UI_DIR, filename)
 
 
@@ -659,11 +653,17 @@ def get_stats():
     try:
         docs = document_manager.get_all_documents()
         
-        # Calculate total storage
-        total_storage = sum(doc['file_size'] for doc in docs)
+        # Calculate total storage, tolerating missing historical values
+        def _coerce_size(value):
+            try:
+                return int(value or 0)
+            except (TypeError, ValueError):
+                return 0
+
+        total_storage = sum(_coerce_size(doc.get('file_size')) for doc in docs)
         
         # Get last upload date
-        last_upload = docs[0]['upload_date'] if docs else None
+        last_upload = docs[0].get('upload_date') if docs else None
         
         # Get report statistics
         all_reports = report_manager.get_all_reports()
@@ -681,6 +681,57 @@ def get_stats():
                 'resolved_reports': len(resolved_reports)
             }
         })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+
+
+@app.route('/api/news/init-sources', methods=['POST'])
+@require_auth(role='admin')
+def initialize_news_sources():
+    """Initialize default news sources"""
+    try:
+        from rag_chatbot.workers.news_fetcher import init_default_sources
+        
+        init_default_sources()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Default news sources initialized'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/news/fetch-all', methods=['POST'])
+@require_auth(role='admin')
+def fetch_all_news():
+    """Fetch news for all roles"""
+    try:
+        from rag_chatbot.workers.news_fetcher import NewsFetcher
+        
+        fetcher = NewsFetcher(pipeline)
+        results = fetcher.fetch_all_roles(fetch_content=True)
+        
+        # Embed new articles
+        for role_type, count in results.items():
+            if count > 0:
+                fetcher.embed_articles(role_type, limit=count)
+        
+        return jsonify({
+            'success': True,
+            'message': 'News fetched for all roles',
+            'results': results
+        })
+        
     except Exception as e:
         return jsonify({
             'success': False,

@@ -1,33 +1,118 @@
-services:
-  app:
-    container_name: app
-    build: .
-    ports:
-      - 7860:7860
-    volumes:
-      - .:/code
-    networks:
-      - local_network
+version: '3.8'
 
-  chromadb:
-    container_name: chromadb
-    image: chromadb/chroma:latest
+services:
+  # Admin Web Interface
+  admin-web:
+    container_name: knowledge-admin
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python run_admin_web.py
     ports:
-      - 8000:8000
+      - "7860:7860"
     volumes:
-      - ./data/chroma:/chroma/chroma
+      - ./data:/app/data
+      - ./UI:/app/UI
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - HF_HOME=/app/data/huggingface
     networks:
-      - local_network
+      - knowledge-network
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:7860')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # User Web Interface
+  user-web:
+    container_name: knowledge-user
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python run_user_web.py
+    ports:
+      - "7861:7861"
+    volumes:
+      - ./data:/app/data
+      - ./UI:/app/UI
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - HF_HOME=/app/data/huggingface
+    networks:
+      - knowledge-network
+    depends_on:
+      - ollama
+      - admin-web
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:7861')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Ollama LLM Server
   ollama:
-    container_name: ollama
+    container_name: knowledge-ollama
     image: ollama/ollama:latest
     ports:
-      - 11434:11434
+      - "11434:11434"
     volumes:
       - ./data/ollama:/root/.ollama
     networks:
-      - local_network
-      
+      - knowledge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # Uncomment for GPU support (requires nvidia-docker)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # ChromaDB Vector Database (Optional - currently not used but available)
+  chromadb:
+    container_name: knowledge-chroma
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/chroma:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    networks:
+      - knowledge-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 networks:
-  local_network:
+  knowledge-network:
     driver: bridge
+    name: knowledge-network
+
+volumes:
+  ollama-data:
+  chroma-data:
+  app-data:
