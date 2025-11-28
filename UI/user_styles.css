@@ -257,6 +257,9 @@ body {
     border-left: 3px solid var(--primary-color);
     cursor: pointer;
     transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .document-item:hover {
@@ -280,27 +283,25 @@ body {
 
 .document-title {
     font-weight: 600;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     font-size: 13px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .document-meta {
     font-size: 11px;
     color: var(--gray-text);
-    margin-top: 4px;
 }
 
 .doc-actions {
     display: flex !important;
     gap: 6px;
     flex-wrap: nowrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
     flex-shrink: 0;
     align-items: center;
+    margin-top: 4px;
 }
 
 .doc-action {

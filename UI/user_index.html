@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Technical Assistant - Knowledge System</title>
-    <link rel="stylesheet" href="user_styles.css?v=20251128j">
+    <link rel="stylesheet" href="user_styles.css?v=20251128L">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 
@@ -59,7 +59,8 @@
                     <div class="document-section">
                         <div class="section-heading">
                             <h3><i class="fas fa-users"></i> Personal Documents</h3>
-                            <button class="section-refresh" data-target="personal-docs" title="Reload personal documents">
+                            <button class="section-refresh" data-target="personal-docs"
+                                title="Reload personal documents">
                                 <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
@@ -72,7 +73,8 @@
                 <div class="tab-content" id="upload-tab">
                     <div class="upload-section">
                         <h3><i class="fas fa-cloud-upload-alt"></i> Upload Personal Document</h3>
-                        <p class="upload-help">Upload documents to your personal workspace. Files are available immediately.</p>
+                        <p class="upload-help">Upload documents to your personal workspace. Files are available
+                            immediately.</p>
 
                         <form id="uploadForm" enctype="multipart/form-data">
                             <div class="form-group">
@@ -87,7 +89,8 @@
                                 <label for="descriptionInput">
                                     <i class="fas fa-align-left"></i> Description
                                 </label>
-                                <textarea id="descriptionInput" rows="4" placeholder="Describe what this document is about..." required></textarea>
+                                <textarea id="descriptionInput" rows="4"
+                                    placeholder="Describe what this document is about..." required></textarea>
                             </div>
 
                             <button type="submit" class="btn-upload">
@@ -125,7 +128,11 @@
                         <div class="ai-avatar"><i class="fas fa-robot"></i></div>
                         <div class="message-content">
                             <p>👋 Hello! I'm your AI assistant. Ask me about:</p>
-                            <ul><li>📄 Internal company documents</li><li>📰 Latest technical news for your role</li><li>👥 Personal knowledge</li></ul>
+                            <ul>
+                                <li> Internal company documents</li>
+                                <li> Latest technical news for your role</li>
+                                <li>👥 Personal knowledge</li>
+                            </ul>
                             <p>Example: <em>"Are there any new CVEs for Java packages?"</em></p>
                         </div>
                     </div>
@@ -144,7 +151,8 @@
 
                 <div class="chat-input-container">
                     <div class="chat-input-wrapper">
-                        <input type="text" id="chatInput" placeholder="Ask about documents or tech news..." maxlength="500">
+                        <input type="text" id="chatInput" placeholder="Ask about documents or tech news..."
+                            maxlength="500">
                         <button id="sendButton">
                             <i class="fas fa-paper-plane"></i>
                         </button>
@@ -166,7 +174,8 @@
                         <button class="refresh-news" id="refreshNews" title="Reload saved news">
                             <i class="fas fa-sync-alt"></i>
                         </button>
-                        <button class="refresh-news fetch" id="fetchLatestNews" title="Fetch and process the newest articles on demand">
+                        <button class="refresh-news fetch" id="fetchLatestNews"
+                            title="Fetch and process the newest articles on demand">
                             <i class="fas fa-bolt"></i>
                             <span>Fetch Latest</span>
                         </button>
@@ -220,7 +229,7 @@
         </div>
     </div>
 
-    <script src="user_script.js?v=20251128k"></script>
+    <script src="user_script.js?v=20251128L"></script>
 </body>
 
 </html>

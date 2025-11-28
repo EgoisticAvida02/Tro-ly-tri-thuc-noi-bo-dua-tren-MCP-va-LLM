@@ -381,14 +381,14 @@ function updateRoleBadge(role) {
     const badge = document.getElementById('roleBadge');
     const roleText = document.getElementById('userRole');
     const roleNames = {
-        'security_engineer': '🔒 Security Engineer',
-        'devops_engineer': '⚙️ DevOps Engineer',
-        'backend_developer': '🖥️ Backend Developer',
-        'frontend_developer': '🎨 Frontend Developer',
-        'data_scientist': '📊 Data Scientist',
-        'cloud_engineer': '☁️ Cloud Engineer',
-        'qa_engineer': '✅ QA Engineer',
-        'product_manager': '📋 Product Manager'
+        'security_engineer': ' Security Engineer',
+        'devops_engineer': ' DevOps Engineer',
+        'backend_developer': ' Backend Developer',
+        'frontend_developer': ' Frontend Developer',
+        'data_scientist': ' Data Scientist',
+        'cloud_engineer': ' Cloud Engineer',
+        'qa_engineer': ' QA Engineer',
+        'product_manager': ' Product Manager'
     };
     const text = roleNames[role] || role;
     if (roleText) {
@@ -762,7 +762,7 @@ async function loadNews(options = {}) {
     }
 
     if (!silent) {
-        newsContainer.innerHTML = '<div class="loading">📰 Loading news...</div>';
+        newsContainer.innerHTML = '<div class="loading"> Loading news...</div>';
     }
     setNewsStatus('Refreshing…', 'busy');
 
@@ -911,11 +911,11 @@ function createNewsCard(article) {
 
     const source = document.createElement('div');
     source.className = 'news-source';
-    source.innerHTML = `📰 ${resolveArticleSource(article)}`;
+    source.innerHTML = ` ${resolveArticleSource(article)}`;
 
     const date = document.createElement('div');
     date.className = 'news-date';
-    date.innerHTML = `🕒 ${formatDate(article.published_date)}`;
+    date.innerHTML = ` ${formatDate(article.published_date)}`;
 
     meta.appendChild(source);
     meta.appendChild(date);
@@ -925,7 +925,7 @@ function createNewsCard(article) {
 
     const readBtn = document.createElement('button');
     readBtn.className = 'btn-news-action';
-    readBtn.textContent = '🔗 Read Article';
+    readBtn.textContent = ' Read Article';
     readBtn.onclick = () => {
         const articleUrl = getArticleUrl(article);
         if (articleUrl) {
@@ -940,7 +940,7 @@ function createNewsCard(article) {
 
     const summarizeBtn = document.createElement('button');
     summarizeBtn.className = 'btn-news-action';
-    summarizeBtn.textContent = '✨ Summarize Article';
+    summarizeBtn.textContent = ' Summarize Article';
     summarizeBtn.onclick = () => summarizeNewsArticle(article, summarizeBtn);
 
     actions.appendChild(readBtn);
@@ -976,14 +976,14 @@ async function summarizeNewsArticle(article, buttonEl) {
         return;
     }
 
-    const questionText = `Summarize the article "${article.title || 'this update'}"`;
+    const questionText = `Tóm tắt bài viết "${article.title || 'tin này'}"`;
 
     displayMessage(questionText, 'user');
     const typingId = showTypingIndicator();
 
     if (buttonEl) {
         buttonEl.disabled = true;
-        buttonEl.textContent = '⏳ Summarizing...';
+        buttonEl.textContent = '⏳ Đang tóm tắt...';
     }
 
     try {
@@ -1025,7 +1025,7 @@ async function summarizeNewsArticle(article, buttonEl) {
     } finally {
         if (buttonEl) {
             buttonEl.disabled = false;
-            buttonEl.textContent = '✨ Summarize Article';
+            buttonEl.textContent = ' Summarize Article';
         }
     }
 }
@@ -1151,13 +1151,20 @@ function createDocumentListItem({ type, id, filename, displayName, metaText, des
     item.dataset.docId = id ?? '';
     item.dataset.docFilename = filename ?? '';
 
-    const header = document.createElement('div');
-    header.className = 'document-header';
-
+    // Title at top - full width for display
     const title = document.createElement('div');
     title.className = 'document-title';
     title.textContent = displayName;
+    item.appendChild(title);
 
+    if (description) {
+        const desc = document.createElement('div');
+        desc.className = 'document-meta';
+        desc.textContent = description;
+        item.appendChild(desc);
+    }
+
+    // Actions at bottom
     const actions = document.createElement('div');
     actions.className = 'doc-actions';
 
@@ -1165,8 +1172,8 @@ function createDocumentListItem({ type, id, filename, displayName, metaText, des
     const downloadBtn = document.createElement('button');
     downloadBtn.type = 'button';
     downloadBtn.className = 'doc-action doc-download';
-    downloadBtn.innerHTML = '<i class="fas fa-download"></i><span>Download</span>';
-    downloadBtn.title = 'Download document';
+    downloadBtn.innerHTML = '<i class="fas fa-download"></i><span>Tải về</span>';
+    downloadBtn.title = 'Tải tài liệu';
     downloadBtn.addEventListener('click', (event) => {
         event.stopPropagation();
         downloadDocument(type, id, filename);
@@ -1176,8 +1183,8 @@ function createDocumentListItem({ type, id, filename, displayName, metaText, des
     const selectBtn = document.createElement('button');
     selectBtn.type = 'button';
     selectBtn.className = 'doc-action doc-select';
-    selectBtn.innerHTML = '<i class="fas fa-reply"></i><span>Use</span>';
-    selectBtn.title = 'Use this document for chat';
+    selectBtn.innerHTML = '<i class="fas fa-reply"></i><span>Dùng</span>';
+    selectBtn.title = 'Sử dụng tài liệu này để hỏi';
 
     selectBtn.addEventListener('click', (event) => {
         event.stopPropagation();
@@ -1188,33 +1195,16 @@ function createDocumentListItem({ type, id, filename, displayName, metaText, des
             label: displayName
         });
         selectBtn.classList.toggle('selected', nowSelected);
-        selectBtn.title = nowSelected ? 'Selected for chat' : 'Use this document for chat';
+        selectBtn.title = nowSelected ? 'Đã chọn' : 'Sử dụng tài liệu này để hỏi';
         const labelEl = selectBtn.querySelector('span');
         if (labelEl) {
-            labelEl.textContent = nowSelected ? 'Selected' : 'Use';
+            labelEl.textContent = nowSelected ? 'Đã chọn' : 'Dùng';
         }
     });
 
     actions.appendChild(downloadBtn);
     actions.appendChild(selectBtn);
-
-    header.appendChild(title);
-    header.appendChild(actions);
-    item.appendChild(header);
-
-    if (metaText) {
-        const meta = document.createElement('div');
-        meta.className = 'document-meta';
-        meta.textContent = metaText;
-        item.appendChild(meta);
-    }
-
-    if (description) {
-        const desc = document.createElement('div');
-        desc.className = 'document-meta';
-        desc.textContent = description;
-        item.appendChild(desc);
-    }
+    item.appendChild(actions);
 
     if (typeof onClick === 'function') {
         item.addEventListener('click', onClick);
@@ -1224,7 +1214,7 @@ function createDocumentListItem({ type, id, filename, displayName, metaText, des
     if (isSelected) {
         item.classList.add('selected');
         selectBtn.classList.add('selected');
-        selectBtn.title = 'Selected for chat';
+        selectBtn.title = 'Đã chọn';
     }
 
     return item;
@@ -1330,8 +1320,6 @@ function displayPersonalDocuments(documents) {
     documents.forEach(doc => {
         const rawName = doc.original_filename || doc.filename || doc.file_name;
         const displayName = formatDocumentName(rawName, 'Untitled document');
-        const uploader = doc.uploader_name || doc.uploader_username || `User #${doc.uploaded_by || '—'}`;
-        const timestamp = doc.approved_at || doc.created_at || doc.uploaded_at;
         const filename = doc.filename || doc.file_name;
 
         const item = createDocumentListItem({
@@ -1339,12 +1327,12 @@ function displayPersonalDocuments(documents) {
             id: doc.id,
             filename,
             displayName,
-            metaText: `by ${uploader} • ${formatDate(timestamp)}`,
+            metaText: null,
             description: doc.description,
             onClick: () => {
                 const chatInput = document.getElementById('chatInput');
                 if (chatInput) {
-                    chatInput.value = `What is ${displayName} about?`;
+                    chatInput.value = `Tài liệu ${displayName} nói về nội dung gì?`;
                     chatInput.focus();
                 }
             }
@@ -1427,7 +1415,7 @@ function displayCompanyDocuments(documents) {
     if (!container) return;
 
     if (!documents || documents.length === 0) {
-        container.innerHTML = '<div style="text-align:center;color:#858796;font-size:12px;padding:20px;">No documents found</div>';
+        container.innerHTML = '<div style="text-align:center;color:#858796;font-size:12px;padding:20px;">Không có tài liệu</div>';
         return;
     }
 
@@ -1436,8 +1424,6 @@ function displayCompanyDocuments(documents) {
     documents.forEach(doc => {
         const rawName = doc.original_filename || doc.filename || doc.file_name;
         const displayName = formatDocumentName(rawName, 'Untitled document');
-        const uploader = doc.uploader_name || doc.uploader_username || `User #${doc.uploaded_by || '—'}`;
-        const timestamp = doc.approved_at || doc.created_at || doc.uploaded_at;
         const filename = doc.filename || doc.file_name;
 
         const item = createDocumentListItem({
@@ -1445,12 +1431,12 @@ function displayCompanyDocuments(documents) {
             id: doc.id,
             filename,
             displayName,
-            metaText: `by ${uploader} • ${formatDate(timestamp)}`,
+            metaText: null,
             description: doc.description,
             onClick: () => {
                 const chatInput = document.getElementById('chatInput');
                 if (chatInput) {
-                    chatInput.value = `What is ${displayName} about?`;
+                    chatInput.value = `Tài liệu ${displayName} nói về nội dung gì?`;
                     chatInput.focus();
                 }
             }
