@@ -1075,6 +1075,7 @@ async function fetchLatestNews(options = {}) {
     setNewsStatus('Fetching latest articles…', 'busy');
 
     try {
+        console.log('[DEBUG] Fetching news for role:', currentRole);
         const response = await fetch(`${API_URL}/news/fetch`, {
             method: 'POST',
             credentials: 'include',
@@ -1086,11 +1087,17 @@ async function fetchLatestNews(options = {}) {
             })
         });
 
+        console.log('[DEBUG] Fetch response status:', response.status);
+        
         if (!response.ok) {
             const errorText = await response.text().catch(() => response.statusText);
+            console.error('[DEBUG] Fetch error response:', errorText);
             throw new Error(errorText || 'Failed to fetch latest news');
         }
 
+        const result = await response.json().catch(() => ({}));
+        console.log('[DEBUG] Fetch success result:', result);
+        
         setNewsStatus('New sources ingested', 'success');
         if (reload) {
             await loadNews({ force: true });
@@ -1099,10 +1106,12 @@ async function fetchLatestNews(options = {}) {
             console.info('News feed refreshed from sources');
         }
     } catch (error) {
-        console.error('Error fetching news:', error);
+        console.error('[DEBUG] Error fetching news:', error);
+        console.error('[DEBUG] Error message:', error.message);
+        console.error('[DEBUG] Error stack:', error.stack);
         setNewsStatus('Fetch failed', 'error');
         if (!silent) {
-            alert('Unable to fetch the newest news items right now. Please try again shortly.');
+            alert(`Unable to fetch news: ${error.message}\n\nCheck browser console (F12) for details.`);
         }
     } finally {
         latestNewsFetchInFlight = false;

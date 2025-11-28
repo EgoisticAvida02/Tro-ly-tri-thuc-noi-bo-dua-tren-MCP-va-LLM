@@ -1204,38 +1204,29 @@ def submit_report():
     """Submit a user report about incorrect/missing information"""
     try:
         data = request.json
+        
+        # Get data from frontend - support both field names
+        question = data.get('question', '')
+        answer = data.get('answer', '')
+        report_type = data.get('issue_type') or data.get('report_type', 'incorrect')
+        user_comment = data.get('comment') or data.get('details', '')
         session_id = data.get('session_id')
-        report_type = data.get('report_type', 'incorrect')
-        details = data.get('details', '')
 
-        # 🧠 Lấy phản hồi cuối cùng từ session (nếu có)
-        last_response = None
-        if session_id and session_id in sessions:
-            last_response = sessions[session_id].get('last_response')
+        # If no question/answer provided, try to get from session
+        if not question or not answer:
+            if session_id and session_id in sessions:
+                last_response = sessions[session_id].get('last_response')
+                if last_response:
+                    question = question or last_response.get('question', '(Unknown question)')
+                    answer = answer or last_response.get('answer', '(Unknown answer)')
 
-        # 🧩 Nếu không tìm thấy hội thoại gần nhất → vẫn cho phép gửi báo cáo
-        if not last_response:
-            print(f"[WARN] No last_response found for session {session_id}. Creating fallback report.")
-            report_id = report_manager.create_report(
-                question="(No conversation found)",
-                answer="(No AI response)",
-                report_type=report_type,
-                report_reason=report_type,
-                user_comment=details
-            )
-            return jsonify({
-                'success': True,
-                'report_id': report_id,
-                'message': 'Report submitted without conversation context.'
-            })
-
-        # ✅ Nếu có hội thoại → tạo báo cáo đầy đủ
+        # Create report with all the data
         report_id = report_manager.create_report(
-            question=last_response.get('question', '(Unknown question)'),
-            answer=last_response.get('answer', '(Unknown answer)'),
+            question=question or '(No question provided)',
+            answer=answer or '(No answer provided)',
             report_type=report_type,
             report_reason=report_type,
-            user_comment=details
+            user_comment=user_comment
         )
 
         return jsonify({
@@ -1245,7 +1236,7 @@ def submit_report():
         })
 
     except Exception as e:
-        print(f"[ERROR] Report submission failed: {str(e)}")  # Log lỗi ra console
+        print(f"[ERROR] Report submission failed: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
